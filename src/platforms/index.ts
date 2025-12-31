@@ -10,6 +10,7 @@ export * from './types.js';
 import type { Platform, PlatformConfig } from './types.js';
 import { linkedinConfig } from './linkedin.js';
 import { threadsConfig } from './threads.js';
+import { substackPostConfig, substackNotesConfig } from './substack.js';
 // import { twitterConfig } from './twitter.js';
 // import { blueskyConfig } from './bluesky.js';
 
@@ -23,6 +24,8 @@ import { threadsConfig } from './threads.js';
 const platformRegistry: Map<Platform, PlatformConfig> = new Map([
   ['linkedin', linkedinConfig],
   ['threads', threadsConfig],
+  ['substack', substackPostConfig],
+  ['substack-notes', substackNotesConfig],
   // ['twitter', twitterConfig],    // TODO: Phase 3
   // ['bluesky', blueskyConfig],    // TODO: Phase 5
 ]);

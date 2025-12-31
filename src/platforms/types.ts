@@ -12,8 +12,15 @@
 
 /**
  * Supported social media platforms.
+ *
+ * - linkedin: Professional long-form posts
+ * - threads: Casual short-form (Meta)
+ * - twitter: Punchy tweets/threads
+ * - bluesky: Conversational short-form
+ * - substack: Newsletter articles (long-form)
+ * - substack-notes: Short-form social posts on Substack
  */
-export type Platform = 'linkedin' | 'threads' | 'twitter' | 'bluesky';
+export type Platform = 'linkedin' | 'threads' | 'twitter' | 'bluesky' | 'substack' | 'substack-notes';
 
 /**
  * All supported platforms for iteration
@@ -23,7 +30,26 @@ export const PLATFORMS: readonly Platform[] = [
   'threads',
   'twitter',
   'bluesky',
+  'substack',
+  'substack-notes',
 ] as const;
+
+/**
+ * Platform categories for grouping
+ */
+export type PlatformCategory = 'social-short' | 'social-long' | 'newsletter';
+
+/**
+ * Map platforms to their categories
+ */
+export const PLATFORM_CATEGORIES: Record<Platform, PlatformCategory> = {
+  linkedin: 'social-long',
+  threads: 'social-short',
+  twitter: 'social-short',
+  bluesky: 'social-short',
+  substack: 'newsletter',
+  'substack-notes': 'social-short',
+};
 
 // ============================================
 // Tone & Style

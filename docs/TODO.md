@@ -34,25 +34,33 @@
 - [ ] Create platform-specific validation refinements
 - [ ] Update all schema imports
 
-## Phase 2: Threads Support
+## Phase 2: Threads & Substack Support
 
-### 2.1 Threads Platform Config
-- [ ] Create `src/platforms/threads.ts`
-- [ ] Define 500 char limit, optional hashtags
-- [ ] Write casual/conversational tone guidelines
-- [ ] Create Threads-specific system prompt
+### 2.1 Threads Platform Config ✅
+- [x] Create `src/platforms/threads.ts`
+- [x] Define 500 char limit, optional hashtags
+- [x] Write casual/conversational tone guidelines
+- [x] Create Threads-specific system prompt
 
-### 2.2 Threads Prompt Engineering
-- [ ] Design hook strategies for Threads (hot takes, reactions)
-- [ ] Define structure: Take → Context → Reaction
-- [ ] Create example outputs for reference
-- [ ] Test with sample prompts
+### 2.2 Substack Platform Config ✅
+- [x] Create `src/platforms/substack.ts` (Posts + Notes)
+- [x] Define newsletter constraints (15000 chars, no hashtags)
+- [x] Define Notes constraints (1000 chars, optional hashtags)
+- [x] Write conversational tone guidelines
+- [x] Create Substack-specific system prompts
 
-### 2.3 Threads Output Schema
-- [ ] Define ThreadsPost schema with constraints
-- [ ] Add validation for character limit
-- [ ] Add optional hashtag handling
-- [ ] Test schema validation
+### 2.3 Newsletter Image Generation
+- [ ] Define NewsletterImageBrief schema
+- [ ] Update Substack synthesis prompt for image briefs
+- [ ] Generate 2-3 image briefs per newsletter (header, section-break, takeaway)
+- [ ] Integrate with NanoBanana Pro for actual image generation
+- [ ] Add image placement hints in output
+
+### 2.4 Platform Schema Updates
+- [ ] Add `substack` and `substack-notes` to schema enums
+- [ ] Define newsletter-specific output fields
+- [ ] Add image briefs array to newsletter results
+- [ ] Test schema validation for both Substack types
 
 ## Phase 3: Twitter/X Support
 

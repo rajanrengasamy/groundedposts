@@ -67,6 +67,16 @@ interface PlatformConfig {
 | Threads | 500 | Optional | Casual | Plain text | Connected posts | Quick takes, reactions |
 | Twitter/X | 280 | 1-2 optional | Punchy | Plain text | Tweet threads (1/n) | Hooks, viral threads |
 | Bluesky | 300 | Optional | Conversational | Plain text | Quote threads | Community-focused |
+| Substack | 15000 | None | Conversational | Rich (full markdown) | Newsletter series | Email-first long-form |
+| Substack Notes | 1000 | 0-3 optional | Conversational | Limited formatting | Reply chains | Social layer for newsletters |
+
+### Platform Categories
+
+| Category | Platforms | Characteristics |
+|----------|-----------|-----------------|
+| **Social Short** | Threads, Twitter, Bluesky, Substack Notes | Quick takes, high frequency, feed-based |
+| **Social Long** | LinkedIn | Thought leadership, lower frequency, professional |
+| **Newsletter** | Substack | Email delivery, subscriber relationship, deepest content |
 
 ## Multi-Post / Threading Support
 
@@ -154,6 +164,45 @@ If this was useful, RT the first tweet 👇
 - **Format**: More conversational, less formulaic
 - **Connection**: Quote-posting own content or reply chain
 - **Use Case**: Building on ideas, community discussions
+
+#### Substack Newsletter Series
+- **Type**: Multi-part email series
+- **Max Length**: 10 parts
+- **Optimal**: 3-5 parts
+- **Format**: Each part is a full newsletter article
+- **Connection**: "Part X:" prefix, recap of previous parts, teaser for next
+- **Use Case**: Deep dives, comprehensive guides, courses
+
+```
+Part 1: Why Technical Debt Is Costing You More Than You Think
+
+[Full newsletter content...]
+
+Coming up in Part 2: How to measure and prioritize your debt...
+
+---
+If you found this valuable, share it with your team.
+```
+
+#### Substack Notes Threads
+- **Type**: Reply-chain social posts
+- **Max Length**: 10 notes
+- **Optimal**: 2-4 notes
+- **Format**: Casual, thinking-out-loud style
+- **Connection**: Natural conversation flow
+- **Use Case**: Quick insights, driving to newsletter, engagement
+
+```
+Note 1: Something I've noticed about AI adoption in enterprises...
+
+Note 2: Here's what's actually happening →
+[Evidence/examples]
+
+Note 3: The implication nobody's talking about:
+[Insight]
+
+I wrote more about this in my latest post: [link]
+```
 
 ### CLI Threading Options
 
@@ -264,6 +313,90 @@ Each post should be valuable standalone but more powerful together.
 - **Length**: 300 chars
 - **Citations**: Link at end
 - **Hashtags**: Optional
+
+### Substack Newsletter
+- **Tone**: Conversational, personal, substantive
+- **Structure**: Hook → Context → Insights → Evidence → Takeaways → Discussion
+- **Format**: Full markdown (headers, bold, italic, lists, links)
+- **Length**: Target 500-1500 words (~3000-9000 chars), max ~15000 chars
+- **Subject Line**: Under 70 chars (Gmail shows 70, Yahoo shows 46)
+- **Citations**: Inline hyperlinks to sources
+- **Hashtags**: Not used
+- **Images**: 2-3 inline images to break up content (see Image Generation)
+
+### Substack Notes
+- **Tone**: Casual, thinking-out-loud
+- **Structure**: Observation → Evidence → Insight → Engagement
+- **Format**: Limited formatting (bold, italic, lists, links)
+- **Length**: Target 200-600 chars, max 1000 chars
+- **Citations**: Link at end or inline
+- **Hashtags**: 0-3 optional for discoverability
+
+## Newsletter Image Generation
+
+For newsletter platforms (Substack), visual content is critical for engagement and readability.
+
+### Image Requirements
+
+| Platform | Min Images | Recommended | Purpose |
+|----------|-----------|-------------|---------|
+| Substack | 2 | 2-4 | Break up text, illustrate concepts |
+| LinkedIn | 0 | 1 | Infographic brief |
+| Threads/Twitter | 0 | 0-1 | Optional visual |
+
+### NanoBanana Pro Integration
+
+For newsletters, the synthesis stage should generate:
+
+1. **Header Image**: Visual hook at top of newsletter
+   - Style: Bold, attention-grabbing
+   - Content: Key statistic or quote visualization
+   - Size: 1200x630 (email-optimized)
+
+2. **Section Break Images** (1-2):
+   - Style: Minimal, informative
+   - Content: Data visualization, concept diagram, or quote card
+   - Placed after every 3-4 paragraphs
+
+3. **Takeaway Image** (optional):
+   - Style: Summary/checklist format
+   - Content: Key points or action items
+   - Placed near end of newsletter
+
+### Image Brief Schema
+
+```typescript
+interface NewsletterImageBrief {
+  images: {
+    type: 'header' | 'section-break' | 'takeaway';
+    title: string;                    // Max 8 words
+    content: string;                  // What to visualize
+    suggestedStyle: 'data-viz' | 'quote-card' | 'diagram' | 'minimal';
+    accentColor: AccentColor;
+    placementHint: string;            // "After paragraph about X"
+  }[];
+}
+```
+
+### Image Generation Prompt Additions
+
+For Substack synthesis, add to system prompt:
+```
+NEWSLETTER IMAGES:
+Generate 2-3 image briefs to break up the newsletter content:
+
+1. HEADER IMAGE: Visual hook summarizing the key insight
+2. SECTION BREAK: Data visualization or quote card after major section
+3. TAKEAWAY (optional): Summary of key points
+
+Each image brief should include:
+- type: header/section-break/takeaway
+- title: Punchy title (max 8 words)
+- content: What to visualize
+- suggestedStyle: data-viz, quote-card, diagram, or minimal
+- accentColor: Match newsletter mood
+- placementHint: Where in the newsletter this should appear
+```
 
 ## CLI Interface
 
