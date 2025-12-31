@@ -56,6 +56,36 @@ export const linkedinConfig: PlatformConfig = {
     supportsEmoji: true,        // Emoji supported but use sparingly
   },
 
+  // Threading
+  threading: {
+    supportsThreading: true,
+    maxThreadLength: 10,
+    connectionType: 'series',
+    numberingFormat: 'Part {n}/{total}: ',
+    requiresTeaser: true,
+    optimalLength: { min: 3, max: 5 },
+    threadPromptAdditions: `
+SERIES MODE - CONNECTED MULTI-POST:
+Generate a connected series where each post builds on the previous.
+
+FORMAT:
+- Start each post with "Part X/Y: [Compelling Title]"
+- End posts 1 to (n-1) with a teaser: "Coming up in Part X: [preview]..."
+- Final post includes overall series CTA
+- Distribute claims across posts - don't front-load everything
+- Each post should be valuable standalone but better together
+
+CONTENT DISTRIBUTION:
+- Part 1: Hook + problem statement + first key insight
+- Middle parts: Deep dive on specific aspects, evidence, examples
+- Final part: Synthesis, actionable takeaways, strong CTA
+
+SERIES TITLE:
+- Include a "seriesTitle" field that works for all posts
+- e.g., "The Hidden Cost of Technical Debt" series
+`,
+  },
+
   // Tone & Style
   tone: 'professional',
   voiceGuidelines: `

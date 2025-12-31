@@ -69,6 +69,35 @@ export interface FormattingConfig {
 }
 
 // ============================================
+// Threading Configuration
+// ============================================
+
+/**
+ * How posts in a thread are connected on the platform
+ */
+export type ThreadConnectionType = 'series' | 'reply-chain' | 'quote' | 'carousel';
+
+/**
+ * Threading/multi-post configuration for each platform
+ */
+export interface ThreadingConfig {
+  /** Whether platform supports connected posts */
+  supportsThreading: boolean;
+  /** Maximum posts in a thread */
+  maxThreadLength: number;
+  /** How posts are connected */
+  connectionType: ThreadConnectionType;
+  /** Numbering format: "1/3", "Part 1:", "[1]", none */
+  numberingFormat?: string;
+  /** Whether each post should tease the next */
+  requiresTeaser: boolean;
+  /** Optimal thread length for engagement */
+  optimalLength: { min: number; max: number };
+  /** System prompt additions for thread generation */
+  threadPromptAdditions: string;
+}
+
+// ============================================
 // Platform Configuration
 // ============================================
 
@@ -100,6 +129,10 @@ export interface PlatformConfig {
   // Format Features
   /** Supported formatting options */
   formatting: FormattingConfig;
+
+  // Threading
+  /** Multi-post/thread configuration */
+  threading: ThreadingConfig;
 
   // Tone & Style
   /** Primary tone for this platform */

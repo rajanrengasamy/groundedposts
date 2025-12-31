@@ -52,6 +52,38 @@ export const threadsConfig: PlatformConfig = {
     supportsEmoji: true,        // Emoji encouraged
   },
 
+  // Threading
+  threading: {
+    supportsThreading: true,
+    maxThreadLength: 10,
+    connectionType: 'reply-chain',
+    numberingFormat: undefined,  // No explicit numbering on Threads
+    requiresTeaser: false,
+    optimalLength: { min: 2, max: 4 },
+    threadPromptAdditions: `
+CONNECTED POSTS MODE - THREADS CAROUSEL:
+Generate a connected thread where each post naturally continues the conversation.
+
+FORMAT:
+- First post: Strong standalone hook/take
+- Reply posts: Build on the thought, add evidence, expand
+- No explicit numbering needed - natural conversation flow
+- Use "→" or "Here's the thing:" type transitions
+- Final post: Land the point with engagement question
+
+THREADS STYLE:
+- Each post should feel like a natural reply to yourself
+- Think "unrolling a thought" not "delivering a presentation"
+- Casual connector phrases: "And here's the thing...", "But wait...", "The kicker?"
+
+EXAMPLE FLOW:
+Post 1: [Hot take or surprising observation]
+Post 2: "Here's why this matters →" [context/evidence]
+Post 3: "The part nobody talks about:" [deeper insight]
+Post 4: [Conclusion + question]
+`,
+  },
+
   // Tone & Style
   tone: 'casual',
   voiceGuidelines: `
