@@ -457,6 +457,329 @@ interface PlatformMetadata {
 }
 ```
 
+## Vector Database & RAG Architecture
+
+### Overview
+
+To optimize context management and enable intelligent content inspiration, GroundedPosts implements dual vector database systems for:
+
+1. **Session Context Management**: RAG-based retrieval of project knowledge (PRD, journals, todos)
+2. **Output Repository**: Storage and retrieval of user-approved content for inspiration
+
+### Vector DB #1: Context Management (RAG)
+
+#### Problem Statement
+
+Large projects with extensive documentation (PRD, journals, todo lists) consume significant context window capacity when starting new sessions. Loading full markdown files is inefficient and limits the working context available for actual task execution.
+
+#### Solution
+
+Implement a vector database to store and retrieve project documentation chunks using RAG (Retrieval Augmented Generation):
+
+```
+src/rag/
+├── context-db/
+│   ├── embeddings.ts       # Embedding generation
+│   ├── store.ts            # Vector storage (Pinecone/Chroma/Qdrant)
+│   ├── retrieval.ts        # Semantic search & retrieval
+│   └── indexing.ts         # Document chunking & indexing
+├── sources/
+│   ├── prd-indexer.ts      # Index PRD.md
+│   ├── journal-indexer.ts  # Index journal entries
+│   └── todo-indexer.ts     # Index TODO.md
+└── session-loader.ts       # Session initialization with RAG
+```
+
+#### Document Indexing Strategy
+
+**PRD Indexing:**
+- Chunk by major sections (## headers)
+- Sub-chunk by subsections (### headers)
+- Metadata: `{ type: 'prd', section: string, last_updated: Date }`
+- Re-index on PRD updates
+
+**Journal Indexing:**
+- Chunk by journal entry (typically by date)
+- Metadata: `{ type: 'journal', date: Date, topics: string[] }`
+- Incremental indexing for new entries
+
+**TODO Indexing:**
+- Chunk by phase/section
+- Metadata: `{ type: 'todo', phase: string, status: 'pending'|'in-progress'|'completed' }`
+- Re-index on TODO updates
+
+#### Retrieval Strategy
+
+**Session Initialization:**
+```typescript
+interface SessionContext {
+  query: string;                    // User's initial prompt
+  retrievedDocs: RetrievedDoc[];    // Top-k relevant chunks
+  contextWindow: number;            // Available context budget
+}
+
+interface RetrievedDoc {
+  content: string;
+  source: 'prd' | 'journal' | 'todo';
+  section: string;
+  relevanceScore: number;
+  metadata: Record<string, any>;
+}
+```
+
+**Retrieval Process:**
+1. User provides initial prompt/task
+2. Generate embedding for user query
+3. Retrieve top-k most relevant chunks (k=5-10)
+4. Rank by relevance score
+5. Inject into session context instead of full markdown files
+6. Reserve context window for task execution
+
+#### CLI Integration
+
+```bash
+# Start session with RAG context
+groundedposts "AI trends" --with-context
+
+# Start session without RAG (load full files)
+groundedposts "AI trends" --no-rag
+
+# Re-index project knowledge
+groundedposts --reindex-context
+```
+
+#### Vector DB Options
+
+| Database | Pros | Cons | Use Case |
+|----------|------|------|----------|
+| **Pinecone** | Managed, fast, scalable | Paid service | Production |
+| **Chroma** | Open source, local-first | Self-hosted | Development |
+| **Qdrant** | Fast, rich filtering | Setup complexity | Advanced use |
+| **Simple JSON** | Zero dependencies | No semantic search | Fallback |
+
+**Recommended**: Start with **Chroma** for local development, migrate to **Pinecone** for production.
+
+#### Schema
+
+```typescript
+interface ContextChunk {
+  id: string;                       // Unique chunk ID
+  content: string;                  // Chunk text
+  embedding: number[];              // Vector embedding
+  source: 'prd' | 'journal' | 'todo';
+  metadata: {
+    section?: string;               // Section/header name
+    date?: Date;                    // For journals
+    phase?: string;                 // For TODOs
+    tags?: string[];                // Optional tags
+    lastUpdated: Date;
+  };
+}
+```
+
+---
+
+### Vector DB #2: Output Storage & Inspiration
+
+#### Problem Statement
+
+Users generate multiple content variations across sessions, but have no way to:
+- Store outputs they like for future reference
+- Retrieve past successful posts for inspiration
+- Learn from previous high-quality generations
+
+#### Solution
+
+Implement a vector database to store user-approved outputs with feedback loop:
+
+```
+src/rag/
+├── output-db/
+│   ├── store.ts              # Vector storage for outputs
+│   ├── feedback.ts           # Feedback collection system
+│   ├── retrieval.ts          # Inspiration retrieval
+│   └── schema.ts             # Output metadata schema
+├── feedback-ui/
+│   ├── review-prompt.ts      # Post-generation review
+│   └── rating-capture.ts     # Capture user feedback
+└── inspiration.ts            # Inspiration mode handler
+```
+
+#### Post-Generation Workflow
+
+**After content generation:**
+
+```
+┌─────────────────────────────────────────────┐
+│  Content Generated                          │
+│  - LinkedIn post (3 variations)             │
+│  - Threads post (2 variations)              │
+│  - Twitter thread (5 tweets)                │
+└─────────────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────────────┐
+│  Review Prompt                              │
+│                                             │
+│  "Review your generated content:"           │
+│  1. LinkedIn - Variation 1                  │
+│  2. LinkedIn - Variation 2                  │
+│  ...                                        │
+│                                             │
+│  Mark favorites to save for inspiration:    │
+│  > Select: 1, 3, 5                          │
+│  > Rate (1-5): 5, 4, 5                      │
+│  > Tags: AI, trends, analysis               │
+│  > Save? (y/n): y                           │
+└─────────────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────────────┐
+│  Vector DB Storage                          │
+│  - Store approved outputs with embeddings   │
+│  - Store metadata (platform, rating, tags)  │
+│  - Store grounded claims used               │
+└─────────────────────────────────────────────┘
+```
+
+#### Output Storage Schema
+
+```typescript
+interface StoredOutput {
+  id: string;
+  content: string;                  // The actual post content
+  embedding: number[];              // Vector embedding
+
+  // Generation context
+  platform: Platform;
+  prompt: string;                   // Original user prompt
+  groundedClaims: GroundedClaim[];  // Claims used
+  generatedAt: Date;
+
+  // User feedback
+  rating: 1 | 2 | 3 | 4 | 5;        // User rating
+  tags: string[];                   // User-provided tags
+  notes?: string;                   // Optional user notes
+
+  // Performance metadata
+  engagement?: {                    // Optional: if user tracks results
+    views?: number;
+    likes?: number;
+    comments?: number;
+    shares?: number;
+  };
+
+  // Synthesis metadata
+  synthesisModel: 'gpt' | 'claude' | 'gemini' | 'kimi';
+  costUSD: number;
+  keyQuotes: KeyQuote[];
+}
+```
+
+#### Inspiration Mode
+
+**CLI Usage:**
+```bash
+# Start inspiration mode
+groundedposts --inspiration
+
+# Inspiration with filters
+groundedposts --inspiration --platform linkedin --tags "AI,trends"
+
+# Show top-rated posts
+groundedposts --inspiration --min-rating 4
+
+# Inspire from specific time range
+groundedposts --inspiration --since "2024-01-01"
+```
+
+**Inspiration Workflow:**
+
+```typescript
+interface InspirationRequest {
+  platform?: Platform;              // Filter by platform
+  tags?: string[];                  // Filter by tags
+  minRating?: number;               // Minimum rating
+  since?: Date;                     // Date range
+  limit?: number;                   // Number of results (default: 10)
+}
+
+interface InspirationResult {
+  posts: StoredOutput[];            // Retrieved posts
+  commonThemes: string[];           // Extracted themes
+  topPerformers: StoredOutput[];    // Highest rated
+  suggestions: string[];            // Content suggestions based on history
+}
+```
+
+**Retrieval Process:**
+1. User runs `groundedposts --inspiration [filters]`
+2. System retrieves top-k liked posts (by rating + recency)
+3. Optionally: User provides a theme/topic for semantic search
+4. Display posts with metadata
+5. Extract common patterns:
+   - Frequent tags
+   - Common themes
+   - Successful structures
+6. Offer to generate new content inspired by past successes
+
+#### Interactive Review UI
+
+**Terminal UI for feedback collection:**
+
+```
+╔══════════════════════════════════════════════════════════╗
+║  Generation Complete: 5 posts created                    ║
+╚══════════════════════════════════════════════════════════╝
+
+┌─ Post 1: LinkedIn ────────────────────────────────────┐
+│ AI trends are reshaping how we work...                │
+│ [Content preview - 500 chars]                          │
+│                                                        │
+│ ⭐ Rate (1-5): ___                                     │
+│ 🏷️  Tags: _________                                    │
+│ 💾 Save? (y/n): ___                                    │
+└────────────────────────────────────────────────────────┘
+
+[Arrow keys to navigate, Enter to review full post, S to skip all]
+```
+
+#### CLI Flags
+
+```bash
+# Auto-save all outputs (skip review)
+groundedposts "AI trends" --auto-save
+
+# Skip save prompt (don't store any outputs)
+groundedposts "AI trends" --no-save
+
+# Save with pre-filled rating/tags
+groundedposts "AI trends" --save --rating 5 --tags "AI,trends"
+```
+
+#### Analytics & Learning
+
+**Future enhancement**: Use stored outputs to improve generation:
+
+```typescript
+interface ContentPatternAnalysis {
+  platform: Platform;
+  topPatterns: {
+    openingHooks: string[];         // Most successful opening lines
+    structures: string[];           // Common structural patterns
+    ctaFormats: string[];           // Effective CTAs
+  };
+  avgRatingByLength: Map<number, number>;
+  topKeywords: string[];
+}
+```
+
+**Learning feedback loop:**
+- Analyze high-rated posts for patterns
+- Adjust synthesis prompts based on successful structures
+- Suggest tags based on topic similarity
+- Recommend platforms based on past engagement
+
+---
+
 ## Implementation Phases
 
 ### Phase 1: Platform Abstraction (Foundation)
@@ -492,21 +815,80 @@ interface PlatformMetadata {
 - [ ] Add platform comparison in output
 - [ ] Performance optimization for multi-platform
 
+### Phase 6: Vector Database & RAG
+
+#### 6.1 Context Management DB (RAG)
+- [ ] Set up vector database infrastructure (Chroma for local dev)
+- [ ] Create `src/rag/context-db/` directory structure
+- [ ] Implement document chunking for PRD, journals, TODOs
+- [ ] Build embedding generation service
+- [ ] Create indexing pipeline for project documentation
+- [ ] Implement semantic search retrieval
+- [ ] Add `--with-context` CLI flag for RAG-enabled sessions
+- [ ] Add `--reindex-context` CLI command
+- [ ] Test context retrieval accuracy and relevance
+- [ ] Optimize chunk size and overlap for best results
+
+#### 6.2 Output Storage DB
+- [ ] Create `src/rag/output-db/` directory structure
+- [ ] Define `StoredOutput` schema with full metadata
+- [ ] Implement vector storage for generated outputs
+- [ ] Build feedback collection system (post-generation review)
+- [ ] Create interactive terminal UI for rating/tagging outputs
+- [ ] Implement `--auto-save`, `--no-save`, `--save --rating X` flags
+- [ ] Test output storage and retrieval workflows
+
+#### 6.3 Inspiration Mode
+- [ ] Implement `--inspiration` CLI mode
+- [ ] Build semantic search over stored outputs
+- [ ] Add filtering by platform, tags, rating, date range
+- [ ] Create inspiration display UI (show past posts)
+- [ ] Implement pattern analysis (common themes, top hooks)
+- [ ] Add content suggestions based on historical data
+- [ ] Test inspiration retrieval and usefulness
+
+#### 6.4 RAG Integration & Optimization
+- [ ] Integrate RAG context into synthesis prompts
+- [ ] Measure context window savings from RAG vs full files
+- [ ] Add analytics for stored outputs (most common tags, avg ratings)
+- [ ] Implement learning feedback loop (adjust prompts based on ratings)
+- [ ] Document RAG setup and usage in README
+- [ ] Add migration path from Chroma to Pinecone for production
+
 ## Success Metrics
 
+### Platform Generation
 - [ ] Same prompt generates appropriate content for each platform
 - [ ] All platform constraints validated (length, hashtags, format)
 - [ ] Source attribution maintained across all platforms
 - [ ] Type safety with platform-specific schemas
 - [ ] <10% code duplication between platforms
 
+### Vector DB & RAG
+- [ ] Context retrieval reduces session context usage by >60%
+- [ ] RAG retrieval accuracy >80% (relevant chunks for query)
+- [ ] Session initialization with RAG completes in <2 seconds
+- [ ] User feedback collection rate >70% (users review/save outputs)
+- [ ] Inspiration mode retrieves 10+ relevant past posts in <1 second
+- [ ] Pattern analysis identifies actionable content insights
+- [ ] Vector DB scales to 1000+ stored outputs without degradation
+
 ## Non-Goals (v1)
 
+### Core Platform
 - API posting (just generate content)
 - Scheduling/queue management
 - Analytics integration
 - Image/media generation per platform
 - Platform API authentication
+
+### Vector DB & RAG
+- Real-time collaboration on stored outputs
+- Multi-user vector database sharing
+- Automatic engagement tracking from social platforms
+- AI-powered auto-rating of generated content
+- Cloud-synced vector database (local-first only in v1)
+- Natural language querying of inspiration database ("show me posts about AI")
 
 ## Technical Debt to Address
 
