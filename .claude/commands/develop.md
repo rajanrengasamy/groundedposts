@@ -10,20 +10,20 @@ You are a **Development Lead** coordinating 5 senior-developer agents to impleme
 The user's development request: $ARGUMENTS
 
 This could be:
-- A section number (e.g., "10" to implement Section 10 from TODO-v2.md)
+- A section number (e.g., "10" to implement Section 10 from docs/TODO.md)
 - A feature description (e.g., "add retry logic to all API calls")
-- A specific task (e.g., "implement the image generation module")
+- A specific task (e.g., "implement the Bluesky platform adapter")
 
 ## Phase 1: Understand the Request
 
 1. **If a section number is provided:**
-   - Read `docs/TODO-v2.md` and extract all tasks from that section
-   - Read `docs/PRD-v2.md` for relevant requirements
+   - Read `docs/TODO.md` and extract all tasks from that section
+   - Read `docs/PRD.md` for relevant requirements
    - Identify existing files that relate to this section
 
 2. **If a feature/task description is provided:**
-   - Read `docs/PRD-v2.md` to understand how it fits the product
-   - Read `docs/TODO-v2.md` to see if it's already documented
+   - Read `docs/PRD.md` to understand how it fits the product
+   - Read `docs/TODO.md` to see if it's already documented
    - Search the codebase for related existing code
 
 3. **Create a development brief:**
@@ -40,12 +40,12 @@ Break down the development work into 5 parallel workstreams. Consider:
 - **Dependencies**: Tasks that can run independently vs. those that need sequencing
 - **Complexity balance**: Distribute work roughly evenly
 
-Example workstream division:
-- **Agent 1**: Core types/schemas and interfaces
-- **Agent 2**: Main implementation logic (part 1)
-- **Agent 3**: Main implementation logic (part 2)
-- **Agent 4**: Utility functions and helpers
-- **Agent 5**: Integration, exports, and tests
+Example workstream division for this project:
+- **Agent 1**: Schemas and type definitions (`src/schemas/`)
+- **Agent 2**: Platform adapters and configuration (`src/platforms/`, `src/config.ts`)
+- **Agent 3**: Synthesis/LLM modules (`src/synthesis/`)
+- **Agent 4**: Collectors and source processing (`src/collectors/`, `src/processing/`)
+- **Agent 5**: CLI commands, tests, and integration (`src/cli/`, `tests/`)
 
 Adjust based on what's actually being built.
 
@@ -62,15 +62,18 @@ For each agent, customize this template:
 ```
 subagent_type: "senior-developer"
 prompt: |
-  You are a senior developer implementing features for the LinkedIn Quotes CLI project.
+  You are a senior developer implementing features for the GroundedPosts Multi-Platform Content Generator CLI project.
 
   ## Project Context
 
-  This is a TypeScript CLI tool with a pipeline: Collect → Validate → Score → Synthesize → Image
+  This is a TypeScript CLI tool with a pipeline:
+  Collect (Perplexity) → Validate → Score (Gemini) → Synthesize (GPT/Claude) → Platform-specific output
+
+  Supported platforms: LinkedIn, Threads, Twitter/X, Bluesky, Substack
 
   Key references:
-  - PRD: docs/PRD-v2.md
-  - TODO: docs/TODO-v2.md
+  - PRD: docs/PRD.md
+  - TODO: docs/TODO.md
   - Existing patterns: [mention relevant existing files]
 
   ## Your Assignment
@@ -86,9 +89,13 @@ prompt: |
   1. Follow existing code patterns in the project
   2. Use TypeScript with strict types (no `any`)
   3. Use Zod schemas for runtime validation
-  4. Add JSDoc comments for exported functions
-  5. Handle errors gracefully with descriptive messages
-  6. Keep functions focused and under 50 lines when possible
+  4. Use withRetry() from `src/utils/retry.ts` for API calls
+  5. Use logger from `src/utils/logger.ts` (never raw console.log)
+  6. Track costs via CostTracker for LLM API calls
+  7. Add JSDoc comments for exported functions
+  8. Handle errors gracefully with descriptive messages
+  9. Keep functions focused and under 50 lines when possible
+  10. All claims/quotes MUST have sourceUrl - no exceptions
 
   ## Coordination Notes
 
@@ -121,7 +128,7 @@ After all 5 agents complete:
    - Run `npx tsc --noEmit` for full type check
 3. **Run tests**: `npm test`
 4. **Update TODO** (if implementing a section):
-   - Mark completed tasks as [x] in `docs/TODO-v2.md`
+   - Mark completed tasks as [x] in `docs/TODO.md`
 5. **Create summary** for the user:
    - What was built
    - Files created/modified
@@ -155,3 +162,4 @@ After completing Phase 4, run the `/journal` command to document:
 2. **Clear file ownership**: Each agent should own specific files to avoid conflicts
 3. **Interface contracts**: Define function signatures upfront so agents can code to interfaces
 4. **Minimize dependencies**: Structure work so agents don't block each other
+5. **Platform boundaries**: Align agent work with platform module boundaries when possible
